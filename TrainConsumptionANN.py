@@ -44,7 +44,7 @@ plt.show()
 XData = Data.drop(["Energy_KWH", "ID"], axis = 1)
 YData = Data["Energy_KWH"]
 
-XTrain, XTest, YTrain, YTest = train_test_split(XData, YData,test_size = 0.3)
+XTrain, XTest, YTrain, YTest = train_test_split(XData, YData,test_size = 0.1)
 
 XTest.to_csv(r"Inputs/XConsumption.csv", index = False)
 YTest.to_csv(r"Inputs/YConsumption.csv", index = False)

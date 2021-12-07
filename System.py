@@ -1,8 +1,7 @@
 import pickle
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split
-from sklearn.neural_network import MLPRegressor
+from datetime import datetime
 
 class System:
 
@@ -13,7 +12,7 @@ class System:
     
     def LoadWeather(self):
         self.Weather = pd.read_csv(r"Data/SolarEnergy/SolarData.csv")
-        self.Weather = self.Weather.drop(["AC System Output (W)", "AC System Output (W)", "Size"], axis = 1)
+        self.Weather = self.Weather.drop(["AC System Output (W)", "DC Array Output (W)"], axis = 1)
         print("-------------Weather-------------")
         print(self.Weather.head())
         print("---------------------------------")
@@ -55,25 +54,66 @@ class System:
         CPerf["ConsumptionPredict"] = CPredict
         CPerf["ERROR"] = abs(CPerf["Consumption"] - CPerf["ConsumptionPredict"])
 
-        GPerf.to_excel("Performance/Generation.xlsx")
-        CPerf.to_excel("Performance/Consumption.xlsx")
+        GPerf.to_excel(r"Performance/Generation.xlsx")
+        CPerf.to_excel(r"Performance/Consumption.xlsx")
+    
+    def PredictGeneration(self, Input):
+        Date = Input["date"]
+        Size = Input["Size"]
 
+        Date = Date.split("-")
+        Day = int(Date[2])
+        Month = int(Date[1])
+
+        Input = self.Weather.loc[(self.Weather["Day"] == Day)&(self.Weather["Month"] == Month)&(self.Weather["Size"] == 1)].copy()
+        Input = Input.drop(["Day", "Month", "Size", "Hour"], axis=1)
+        Input.insert(5, "Size", Size)
+
+        Predictions = self.GenerationANN.predict(Input)
+
+        Generation = 0
+        for Prediction in Predictions:
+            Generation = Generation + Prediction
+
+        Generation = Generation/1e3
+
+        return Generation
+    
+    def PredictConsumption(self, Input):
+        Input.pop("Size")
+
+        YMD = Input["date"].split("-")
+        Input["date"] = datetime(int(YMD[0]),int(YMD[1]),int(YMD[2])).timetuple().tm_yday
+
+        Features = pd.DataFrame()
+        Features = Features.append(Input, ignore_index=True)
+        
+        Consumption = self.ConsumptionANN.predict(Features)
+        return Consumption[0]
+    
+    def EvaluateDayCoverage(self, Input):
+        Generation = Sys.PredictGeneration(Input)
+        Consumption = Sys.PredictConsumption(Input)
+
+        Coverage = abs(Generation - Consumption)/Consumption
+        return Coverage
+    
+    def EvaluateMonthCoverage(self, Input):
+        None
         
 
 Sys = System()
-Sys.PerformanceEvaluation()
 
-'''
-Date = "2018-01-20"
-HouseType = 1
-Rus = 1
-Evs = 1
-HVAC = 1
-Isolation = 1
-Holyday = 1
-Seed = 20
-Size = 1
+Input = {
+    "date": "2018-01-20",
+    "HouseType": 0,
+    "RUs": 1,
+    "EVs": 0,
+    "HVAC": 1,
+    "Isolation": 1,
+    "Holiday": 1,
+    "Seed": 20,
+    "Size": 10
+}
 
-YMD = Date.split("-")
-Date = 
-'''
+print(Sys.EvaluateDayCoverage(Input))
