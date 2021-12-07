@@ -1,6 +1,7 @@
 import pickle
 import pandas as pd
 import numpy as np
+from tkinter.filedialog import asksaveasfilename
 from datetime import datetime
 import calendar
 
@@ -9,6 +10,7 @@ class System:
     def __init__(self):
         print("Initiating...")
         self.LoadWeather()
+        self.LoadHolyDays()
         self.LoadANNs()
     
     def LoadWeather(self):
@@ -18,6 +20,14 @@ class System:
         print(self.Weather.head())
         print("---------------------------------")
     
+    def LoadHolyDays(self):
+        #Cargar dias festivos
+        with open(r"Data/HouseHold/holidays.csv") as file:
+            self.Holidays = pd.read_csv(file, sep = ",")
+            print("-------------HoliDays-------------")
+            print(self.Holidays.head())
+            print("---------------------------------")
+
     def LoadANNs(self):
         with open(r"ANN/ConsumptionANN", 'rb') as ANN:
             self.ConsumptionANN = pickle.load(ANN)
@@ -93,13 +103,14 @@ class System:
         return Consumption[0]
     
     def EvaluateDayCoverage(self, Input):
-        Generation = Sys.PredictGeneration(Input)
-        Consumption = Sys.PredictConsumption(Input)
+        Input["Holiday"] = self.CheckHoliDay(Input["date"])
+        Generation = self.PredictGeneration(Input)
+        Consumption = self.PredictConsumption(Input)
 
         Coverage = Generation/Consumption
         return Coverage,Generation,Consumption
     
-    def EvaluateMonthCoverage(self, Input):
+    def EvaluateMonthCoverage(self, Input, Export):
         YMD = Input["date"].split("-")
         NDays = calendar.monthrange(int(YMD[0]), int(YMD[1]))[1]
         MonthCoverage = pd.DataFrame()
@@ -109,9 +120,15 @@ class System:
             Coverage,Generation,Consumption = self.EvaluateDayCoverage(InputBuffer)
             Coverage = Coverage*100
             MonthCoverage = MonthCoverage.append({"Day": Day, "Coverage": Coverage, "Generation": Generation, "Consumption": Consumption}, ignore_index = True)
+        if (Export == True):
+            filename = asksaveasfilename()
+            if filename.find(".csv") != -1:
+                MonthCoverage.to_csv(filename+".csv", sep = ",", index = False)
+            else:
+                MonthCoverage.to_excel(filename+".xlsx", index = False)
         return MonthCoverage
     
-    def EvaluateYearCoverage(self, Input):
+    def EvaluateYearCoverage(self, Input, Export):
         YMD = Input["date"].split("-")
         YearCoverage = pd.DataFrame()
         for Month in range(1,13):
@@ -122,22 +139,19 @@ class System:
                 Coverage,Generation,Consumption = self.EvaluateDayCoverage(InputBuffer)
                 Coverage = Coverage*100
                 YearCoverage = YearCoverage.append({"Month": Month,"Day": Day, "Coverage": Coverage, "Generation": Generation,"Consumption": Consumption}, ignore_index = True)
+        if (Export == True):
+            filename = asksaveasfilename()
+            if filename.find(".csv") != -1:
+                YearCoverage.to_csv(filename+".csv", sep = ",", index = False)
+            else:
+                YearCoverage.to_excel(filename+".xlsx", index = False)
         return YearCoverage
-
-        
-
-Sys = System()
-
-Input = {
-    "date": "2018-01-20",
-    "HouseType": 0,
-    "RUs": 1,
-    "EVs": 0,
-    "HVAC": 1,
-    "Isolation": 1,
-    "Holiday": 1,
-    "Seed": 20,
-    "Size": 10
-}
-
-print(Sys.EvaluateYearCoverage(Input))
+    
+    def CheckHoliDay(self, Date):
+        YMD = Date.split("-")
+        Holiday = 0
+        if (not self.Holidays.loc[self.Holidays["date"] == Date].empty):
+            Holiday = 1
+        if (datetime(int(YMD[0]),int(YMD[1]),int(YMD[2])).weekday() > 4):
+            Holiday = 1
+        return Holiday
