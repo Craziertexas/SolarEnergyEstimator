@@ -2,6 +2,7 @@ import pickle
 import pandas as pd
 import numpy as np
 from datetime import datetime
+import calendar
 
 class System:
 
@@ -80,14 +81,14 @@ class System:
         return Generation
     
     def PredictConsumption(self, Input):
-        Input.pop("Size")
 
         YMD = Input["date"].split("-")
         Input["date"] = datetime(int(YMD[0]),int(YMD[1]),int(YMD[2])).timetuple().tm_yday
 
         Features = pd.DataFrame()
         Features = Features.append(Input, ignore_index=True)
-        
+        Features = Features.drop(["Size"], axis = 1)
+
         Consumption = self.ConsumptionANN.predict(Features)
         return Consumption[0]
     
@@ -95,11 +96,34 @@ class System:
         Generation = Sys.PredictGeneration(Input)
         Consumption = Sys.PredictConsumption(Input)
 
-        Coverage = abs(Generation - Consumption)/Consumption
-        return Coverage
+        Coverage = Generation/Consumption
+        return Coverage,Generation,Consumption
     
     def EvaluateMonthCoverage(self, Input):
-        None
+        YMD = Input["date"].split("-")
+        NDays = calendar.monthrange(int(YMD[0]), int(YMD[1]))[1]
+        MonthCoverage = pd.DataFrame()
+        for Day in range(1,NDays + 1):
+            InputBuffer = Input
+            InputBuffer["date"] = str(YMD[0]) + "-" + str(YMD[1]) + "-" + str(Day)
+            Coverage,Generation,Consumption = self.EvaluateDayCoverage(InputBuffer)
+            Coverage = Coverage*100
+            MonthCoverage = MonthCoverage.append({"Day": Day, "Coverage": Coverage, "Generation": Generation, "Consumption": Consumption}, ignore_index = True)
+        return MonthCoverage
+    
+    def EvaluateYearCoverage(self, Input):
+        YMD = Input["date"].split("-")
+        YearCoverage = pd.DataFrame()
+        for Month in range(1,13):
+            NDays = calendar.monthrange(int(YMD[0]), Month)[1]
+            for Day in range(1,NDays + 1):
+                InputBuffer = Input
+                InputBuffer["date"] = str(YMD[0]) + "-" + str(Month) + "-" + str(Day)
+                Coverage,Generation,Consumption = self.EvaluateDayCoverage(InputBuffer)
+                Coverage = Coverage*100
+                YearCoverage = YearCoverage.append({"Month": Month,"Day": Day, "Coverage": Coverage, "Generation": Generation,"Consumption": Consumption}, ignore_index = True)
+        return YearCoverage
+
         
 
 Sys = System()
@@ -116,4 +140,4 @@ Input = {
     "Size": 10
 }
 
-print(Sys.EvaluateDayCoverage(Input))
+print(Sys.EvaluateYearCoverage(Input))
