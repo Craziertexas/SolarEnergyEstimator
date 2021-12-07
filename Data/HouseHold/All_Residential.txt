@@ -50,15 +50,15 @@ Cover (data coverage):
     The percent of non-missing readings. A value of 1.000 is 100%.
 
 House Types:
-    character   - multi-level houses build before 1940
-    bungalow    - single-level (w/ basement) houses built in the 1940s and 1950s
-    special     - two-level houses built between 1965 to 1989
-    modern      - two-/three-level houses build in the 1990s and afterwards
-    duplex      - two houses that share a common wall, can be side-by-side or front-back
-    triplex     - three houses that share common walls: top unit, front unit, and back unit
-    townhouse   - row houses that share one or two common walls
-    apartment   - hight-rise or low-rise living units
-    laneway     - small homes built in the backyard of the main house which open onto the back lane
+    character - 8 - multi-level houses build before 1940
+    bungalow - 0    - single-level (w/ basement) houses built in the 1940s and 1950s
+    special - 7   - two-level houses built between 1965 to 1989
+    modern - 6  - two-/three-level houses build in the 1990s and afterwards
+    duplex - 4    - two houses that share a common wall, can be side-by-side or front-back
+    triplex - 5    - three houses that share common walls: top unit, front unit, and back unit
+    townhouse - 3  - row houses that share one or two common walls
+    apartment - 2   - hight-rise or low-rise living units
+    laneway - 1     - small homes built in the backyard of the main house which open onto the back lane
 
 Facing:
     What direction the house is facing.

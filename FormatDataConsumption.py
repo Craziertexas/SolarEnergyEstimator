@@ -1,6 +1,5 @@
 import pandas as pd
 pd.options.mode.chained_assignment = None
-from IPython.display import clear_output
 from datetime import datetime
 
 #Carga de datos
@@ -10,14 +9,8 @@ HouseFeatures = pd.DataFrame()
 HouseData = pd.DataFrame()
 
 #Cargar Caracacteristicas de casa
-with open(r"Data\HouseHold\Features.csv") as file:
+with open(r"Data/HouseHold/Features.csv") as file:
     HouseFeatures = pd.read_csv(file, sep = ",")
-
-#Codificacion Tipo de casa
-Code = 0
-for tipe in HouseFeatures["HouseType"].unique():
-    HouseFeatures.loc[HouseFeatures["HouseType"] == tipe, "HouseType"] = Code
-    Code += 1
 
 #Codificacion Aislante casa
 for facing in HouseFeatures["Facing"].unique():
@@ -46,7 +39,7 @@ print("----------------------------------------------------------------------")
 
 #Cargar Datos de energia por casa
 for House in range(1, 29):
-    with open(r"Data\HouseHold\Residential_" + str(House) + ".csv") as file:
+    with open(r"Data/HouseHold/Residential_" + str(House) + ".csv") as file:
             buffer = pd.read_csv(file, sep = ",")
             buffer['ID'] = House
             HouseData = HouseData.append(buffer, ignore_index = True, verify_integrity= True, sort = True)
@@ -55,7 +48,7 @@ print(HouseData.head())
 print("--------------------------------------------------------------------")
 
 #Cargar dias festivos
-with open(r"Data\HouseHold\Holidays.csv") as file:
+with open(r"Data/HouseHold/holidays.csv") as file:
     Holidays = pd.read_csv(file, sep = ",")
 print("--------------------------- HoliDays ------------------------------")
 print(Holidays.head())
@@ -78,6 +71,22 @@ for House in range(1,29):
         for column in Features.columns:
             Output.loc[Output["ID"] == House, column] = Features[column][FeaturesIndex[0]]
 
+#Codificacion Tipo de casa
+HouseType = pd.DataFrame()
+for tipe in HouseFeatures["HouseType"].unique():
+    buffer = Output.loc[(Output["HouseType"] == tipe)&(Output["RUs"] == 0)]
+    mean = buffer["Energy_KWH"].mean()
+    HouseType = HouseType.append({"Type":tipe, "mean":mean}, ignore_index=True)
+
+print(HouseType)
+print(HouseType.sort_values("mean")["Type"].unique())
+
+code = 0
+for tipe in HouseType.sort_values("mean")["Type"].unique():
+    Output.loc[Output["HouseType"] == tipe, "HouseType"] = code
+    code += 1
+    
+
 #Agregar dias festivos y fines de semana
 for Date in Output["date"].unique():
     YMD = Date.split("-")
@@ -94,5 +103,5 @@ print(Output.head())
 print("------------------------------------------------------------------------")
 
 #Exportar datos
-Output.to_csv(r"Data\HouseHold\HouseData.csv", sep = ",", index = False)
+Output.to_csv(r"Data/HouseHold/HouseData.csv", sep = ",", index = False)
 
